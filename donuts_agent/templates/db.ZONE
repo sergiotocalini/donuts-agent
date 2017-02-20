@@ -1,0 +1,13 @@
+$ORIGIN {ZONE}.
+@  1D  IN  SOA ns1.{ZONE}. unix.ca1492.com.ar. (
+			      4 ; serial
+			      3H ; refresh
+			      15 ; retry
+			      1w ; expire
+			      3h ; minimum
+			     )
+		IN  NS     ns1.{ZONE}.
+		IN  NS     ns2.{ZONE}.
+
+ns1		IN  A	   190.139.108.118
+ns2		IN  A	   200.45.75.9

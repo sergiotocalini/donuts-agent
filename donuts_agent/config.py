@@ -7,7 +7,7 @@ class Config(object):
     DEBUG = False
     CSRF_ENABLED = True
     SECRET_KEY = 'r43r8fdj3290121p454yhyf!'
-    APPLICATION_ROOT = '/'
+    APPLICATION_ROOT = '/donuts-agent'
     APP_PATH = os.path.dirname(os.path.abspath(__file__))
     PATH_BIN = '/usr/bin'
     PATH_SBIN = '/usr/sbin'

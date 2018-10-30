@@ -74,7 +74,12 @@ class Production(Config):
     DEBUG = False
     
 class Debian(Config):
+    PATH_BIN = '/usr/bin'
+    PATH_SBIN = '/usr/sbin'
     PATH_CONF = '/etc/bind'
+    PATH_CHECKCONF = '%s/named-checkconf' %PATH_SBIN
+    PATH_RNDC = '%s/rndc' %PATH_SBIN
+    PATH_NSUPDATE = '%s/nsupdate' %PATH_BIN
     BIND_CONF = {
         'key': '%s/keys/updates.key' %PATH_CONF,
         'backup': '%s/backups' %PATH_CONF,

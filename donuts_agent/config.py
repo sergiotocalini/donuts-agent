@@ -48,7 +48,7 @@ class Config(object):
             }
         }
     }
-    BIND_KEY = '%s/keys/updates.key'
+    BIND_KEY = '%s/keys/updates.key' %PATH_CONF
     BIND_ZONES = {
         'public': '%s/conf.d/zones_public.conf' %PATH_CONF,
         'private': '%s/conf.d/zones_private.conf' %PATH_CONF
@@ -75,5 +75,55 @@ class Production(Config):
     
 class Debian(Config):
     PATH_CONF = '/etc/bind'
-
+    BIND_CONF = {
+        'key': '%s/keys/updates.key' %PATH_CONF,
+        'backup': '%s/backups' %PATH_CONF,
+        'path': {
+            'named-checkconf':'%s/named-checkconf' %PATH_SBIN,
+            'rndc': '%s/rndc' %PATH_SBIN, 'nsupdate':'%s/nsupdate' %PATH_BIN
+        },
+        'databases': {
+            'private': '%s/databases/private' %PATH_CONF,
+            'public': '%s/databases/public' %PATH_CONF
+        },
+        'zones': {
+            'available': {
+                'public':'%s/zones-available/public' %PATH_CONF,
+                'private':'%s/zones-available/private' %PATH_CONF
+            },
+            'enabled': {
+                'public': '%s/zones-enabled/public' %PATH_CONF,
+                'private': '%s/zones-enabled/private' %PATH_CONF
+            },
+            'activated': {
+                'public': '%s/conf.d/zones_public.conf' %PATH_CONF,
+                'private': '%s/conf.d/zones_private.conf' %PATH_CONF
+            }
+        },
+        'templates': {
+            'database': '%s/templates/db.ZONE' %APP_PATH,
+            'zones': {
+                'slave': '%s/templates/ZONE.slave.conf' %APP_PATH,
+                'master': '%s/templates/ZONE.conf' %APP_PATH
+            }
+        }
+    }
+    BIND_KEY = '%s/keys/updates.key' %PATH_CONF
+    BIND_ZONES = {
+        'public': '%s/conf.d/zones_public.conf' %PATH_CONF,
+        'private': '%s/conf.d/zones_private.conf' %PATH_CONF
+    }
+    BIND_ZONES_DB = {
+        'private': '%s/databases/private/' %PATH_CONF,
+        'public': '%s/databases/public/' %PATH_CONF
+    }
+    BIND_ZONES_AVAILABLE = {
+        'public': '%s/zones-available/public/' %PATH_CONF,
+        'private': '%s/zones-available/private/' %PATH_CONF
+    }
+    BIND_ZONES_ENABLED = {
+        'public': '%s/zones-enabled/public/' %PATH_CONF,
+        'private': '%s/zones-enabled/private/' %PATH_CONF
+    }
+    BIND_ZONES_BACKUP = '%s/backups/' %PATH_CONF
 

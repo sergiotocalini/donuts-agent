@@ -74,6 +74,7 @@ class Production(Config):
     DEBUG = False
     
 class Debian(Config):
+    APP_PATH = os.path.dirname(os.path.abspath(__file__))
     PATH_BIN = '/usr/bin'
     PATH_SBIN = '/usr/sbin'
     PATH_CONF = '/etc/bind'

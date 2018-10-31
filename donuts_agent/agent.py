@@ -118,8 +118,8 @@ def record_delete(zone, action, record, record_type, record_value):
     archive.close()
     return archive.name
 
-def update_dns(config, filename, zone):
-    command = "%s -k %s %s" %(config['path']['nsupdate'], config['key'], filename)
+def update_dns(config, filename, zone, view):
+    command = "%s -k %s %s" %(config['path']['nsupdate'], config['zones']['keys'][view], filename)
     output = 'cmd: %s' % command
     output += '\n' * 2
     output += commands.getoutput(command)
@@ -139,16 +139,16 @@ def update_zone(config, zone, action, record, record_type, record_value, ttl, zv
         fname = record_create(zone, action, record, record_type, record_value, ttl)
         output = 'Filename: %s ' % fname
         output += '\n ' * 4
-        output +=  commands.getoutput('cat %s ' % fname)
+        output += commands.getoutput('cat %s ' % fname)
         output += '\n'
-        output += update_dns(config, fname, zone)
+        output += update_dns(config, fname, zone, zview)
     elif action == 'del':
         fname = record_delete(zone, action, record, record_type, record_value)
         output = 'Filename: %s ' % fname
         output += '\n ' * 4
-        output +=  commands.getoutput('cat %s ' % fname)
+        output += commands.getoutput('cat %s ' % fname)
         output += '\n'
-        update_dns(config, fname, zone)
+        output += update_dns(config, fname, zone, zview)
     return output
 
 def get_zone_file(config, zone, zview):

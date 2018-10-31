@@ -16,7 +16,6 @@ class Config(object):
     PATH_RNDC = '%s/rndc' %PATH_SBIN
     PATH_NSUPDATE = '%s/nsupdate' %PATH_BIN
     BIND_CONF = {
-        'key': '%s/keys/updates.key' %PATH_CONF,
         'backup': '%s/backups' %PATH_CONF,
         'path': {
             'named-checkconf':'%s/named-checkconf' %PATH_SBIN,
@@ -38,6 +37,10 @@ class Config(object):
             'activated': {
                 'public': '%s/conf.d/zones_public.conf' %PATH_CONF,
                 'private': '%s/conf.d/zones_private.conf' %PATH_CONF
+            },
+            'keys': {
+                'public': '%s/keys/zones_public.key' %PATH_CONF,
+                'private': '%s/keys/zones_private.key' %PATH_CONF
             }
         },
         'templates': {
@@ -82,7 +85,6 @@ class Debian(Config):
     PATH_RNDC = '%s/rndc' %PATH_SBIN
     PATH_NSUPDATE = '%s/nsupdate' %PATH_BIN
     BIND_CONF = {
-        'key': '%s/keys/updates.key' %PATH_CONF,
         'backup': '%s/backups' %PATH_CONF,
         'path': {
             'named-checkconf':'%s/named-checkconf' %PATH_SBIN,
@@ -104,7 +106,12 @@ class Debian(Config):
             'activated': {
                 'public': '%s/conf.d/zones_public.conf' %PATH_CONF,
                 'private': '%s/conf.d/zones_private.conf' %PATH_CONF
+            },
+            'keys': {
+                'public': '%s/keys/zones_public.key' %PATH_CONF,
+                'private': '%s/keys/zones_private.key' %PATH_CONF
             }
+
         },
         'templates': {
             'database': '%s/templates/db.ZONE' %APP_PATH,

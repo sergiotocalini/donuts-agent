@@ -138,15 +138,15 @@ def update_zone(config, zone, action, record, record_type, record_value, ttl, zv
     output = 'ok'
     if action == 'add':
         fname = record_create(zone, action, record, record_type, record_value, ttl)
-        output = '~# cat "%s" ' % fname
+        output = '~# cat "%s"\n' % fname
         output += commands.getoutput('cat "%s"' % fname)
-        output += '~#\n'
+        output += '\n~#\n'
         output += update_dns(config, fname, zone, zview)
     elif action == 'del':
         fname = record_delete(zone, action, record, record_type, record_value)
-        output = '~# cat "%s" ' % fname
+        output = '~# cat "%s"\n' % fname
         output += commands.getoutput('cat "%s"' % fname)
-        output += '~#\n'
+        output += '\n~#\n'
         output += update_dns(config, fname, zone, zview)
     return output
 

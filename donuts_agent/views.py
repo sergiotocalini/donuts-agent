@@ -38,7 +38,7 @@ def index():
 
 def enable_zone(data):
     zone = data.get('zone', None)
-    zviews = data.get('view', 'public')
+    zviews = data.get('view', 'private')
     if zone is None:
         abort(401)
     status = agent.enable_zone(app.config['BIND_CONF'], zviews, zone)
@@ -47,7 +47,7 @@ def enable_zone(data):
 
 def disable_zone(data):
     zone = data.get('zone', None)
-    zviews = data.get('view', 'public')
+    zviews = data.get('view', 'private')
     if zone is None:
         abort(401)
     status = agent.disable_zone(app.config['BIND_CONF'], zone, zviews=zviews)
@@ -58,7 +58,7 @@ def add_zone(data):
     zone = data.get('zone', None)
     master = data.get('master', None)
     master_host = data.get('master_host', None)
-    zview = data.get('view', 'public')
+    zview = data.get('view', 'private')
     if zone is None or master is None or master_host is None:
         abort(401)
     status = agent.add_zone(app.config['BIND_CONF'], zone, master, master_host, zview=zview)
@@ -67,20 +67,21 @@ def add_zone(data):
 
 def del_zone(data):
     zone = data.get('zone', None)
-    zviews = data.get('view', 'public')
+    view = data.get('view', 'private')
     if not zone:
         abort(401)
-    status = agent.del_zone(app.config['BIND_CONF'], zone, zviews=zviews)
+    status = agent.del_zone(app.config['BIND_CONF'], zone, zviews=view)
     data = {'status': status}
     return flask.jsonify(data)
 
 def show_zones(data):
     zone = data.get('zone', None)
+    view = data.get('view', 'private')
     if not zone:
         data = {'data': agent.get_zones(app.config['BIND_ZONES'])}
         pprint.pprint(data)
         return flask.jsonify(data)
-    data = {'data': agent.get_zone_file(app.config['BIND_CONF'], zone, 'public')}
+    data = {'data': agent.get_zone_file(app.config['BIND_CONF'], zone, view)}
     pprint.pprint(data)
     return flask.jsonify(data)
 
@@ -91,7 +92,7 @@ def update_zone(data):
     record_type = data.get('record_type', None)
     record_value = data.get('record_value', None)
     ttl = data.get('ttl', None)
-    zviews = data.get('view', 'public')
+    zviews = data.get('view', 'private')
     if None in (zone, action, record, record_value, ttl, zviews):
         abort(401)
     output = agent.update_zone(app.config['BIND_CONF'], zone, action, record, record_type, record_value, ttl, zviews)

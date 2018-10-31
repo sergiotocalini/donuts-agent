@@ -54,7 +54,7 @@ def get_zones_path(config, zview, zone):
     databases = '%s/db.%s'   %(config['databases'][zview], zone)
     return (available, enabled, databases)
 
-def add_zone(config, zone, master, master_host, zview='public'):
+def add_zone(config, zone, master, master_host, zview='private'):
     z = get_zone_file(config, zone, zview)
     if z:
         ok = False
@@ -72,7 +72,7 @@ def add_zone(config, zone, master, master_host, zview='public'):
     status += enable_zone(config, zview, zone)[1]
     return (ok, status)
 
-def del_zone(config, zone, zviews='public'):
+def del_zone(config, zone, zviews='private'):
     z = get_zone_file(config, zone, zviews)
     ok = False
     status = "Zone does not exists"

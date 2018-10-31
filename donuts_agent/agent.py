@@ -114,6 +114,7 @@ def record_delete(zone, action, record, record_type, record_value):
     if record and record != '@':
         r = '%s.%s' % (record, zone)
     archive.write("update delete %s in %s %s\n" %(r, record_type, record_value))
+    archive.write("show\n")
     archive.write("send\n")
     archive.close()
     return archive.name

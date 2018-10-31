@@ -1,6 +1,6 @@
 $ORIGIN {ZONE}.
-@  1D  IN  SOA ns1.{ZONE}. unix.ca1492.com.ar. (
-			      4 ; serial
+@  1D  IN  SOA ns1.{ZONE}. unix.{ZONE}. (
+			      6  ; serial
 			      3H ; refresh
 			      15 ; retry
 			      1w ; expire

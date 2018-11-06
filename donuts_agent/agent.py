@@ -1,9 +1,48 @@
+#!/usr/bin/env python
 import os
 import re
 import datetime
 import commands
 import tempfile
 import time
+import dns.zone
+
+def zone_sync(config, zone=''):
+    command = '%s sync %s' % (config['path']['rndc'], zone)
+    return [{ 'cmd': command, 'out': commands.getoutput(command) }]
+    
+
+def zone_read(zone, view, config):
+    zone_sync(config, zone)
+    zone = dns.zone.from_file(get_zone_file(config, zone, view, content=False), zone)
+    names = zone.nodes.keys()
+    names.sort()
+    soa = {}
+    records = []
+    for n in names:
+        txt = zone[n].to_text(n)
+        for t in txt.split('\n'):
+            if 'SOA' in t:
+                soa['raw'] = t
+                soa['ts'] = t.split('.')[-1].strip().split()[0]
+            else:
+                values = t.split()
+                if len(values) == 5:
+                    records.append({ 'name': values[0], 'ttl': values[1], 'type': values[3], 'value': values[4] })
+                else:
+                    values = t.split('"')
+                    if len(values) == 3:
+                        v = values[0].split()
+                        records.append({ 'name': v[0], 'ttl': v[1], 'type': v[3], 'value': values[1] })
+                    else:
+                        for k in ['SRV', 'MX', 'RSIG', 'TXT', 'DNSKEY', 'NSEC3PARAM', 'TYPE65534']:
+                            if key in t:
+                                values = t.split(key)
+                                v = values[0].split()
+                                records.append({ 'name': v[0], 'ttl': v[1], 'type': key, 'value': values[1] })
+                                break
+    return soa, records
+
 
 def enable_zone(config, zview, zone):
     available, enabled, database = get_zones_path(config, zview, zone)
@@ -13,6 +52,7 @@ def enable_zone(config, zview, zone):
         status.append({'status': 'file_linked', 'source': available, 'destination': enabled})
         status = refresh_conf(config, zview, status)
     return (False, status)
+
 
 def disable_zone(config, zone, zviews):
     z = get_zone_file(config, zone, zviews)
@@ -26,6 +66,7 @@ def disable_zone(config, zone, zviews):
         return (True, status)
     return (False, status)
 
+
 def create_zone_file(fpath, dpath, database, zone, master_host):
     f = open(fpath)
     source_txt = f.read()
@@ -36,6 +77,7 @@ def create_zone_file(fpath, dpath, database, zone, master_host):
     dfile.write(source_txt)
     dfile.close()
     return {'status': 'file_created', 'content': source_txt, 'path': dpath}
+
 
 def refresh_conf(config, zview, status):
     cmd = 'cat %s/*.conf > %s' % (config['zones']['enabled'][zview],
@@ -48,11 +90,13 @@ def refresh_conf(config, zview, status):
     status.append({'status': 'run', 'command': '%s reconfig' %config['path']['rndc']})
     return status
 
+
 def get_zones_path(config, zview, zone):
     available = '%s/%s.conf' %(config['zones']['available'][zview], zone)
     enabled   = '%s/%s.conf' %(config['zones']['enabled'][zview], zone)
     databases = '%s/db.%s'   %(config['databases'][zview], zone)
     return (available, enabled, databases)
+
 
 def add_zone(config, zone, master, master_host, zview='private'):
     z = get_zone_file(config, zone, zview)
@@ -72,6 +116,7 @@ def add_zone(config, zone, master, master_host, zview='private'):
     status += enable_zone(config, zview, zone)[1]
     return (ok, status)
 
+
 def del_zone(config, zone, zviews='private'):
     z = get_zone_file(config, zone, zviews)
     ok = False
@@ -90,6 +135,7 @@ def del_zone(config, zone, zviews='private'):
         status.append({'status': 'file_removed', 'source': database})
     return (ok, status)
 
+
 def record_create(zone, action, record, record_type, record_value, ttl, force=False, verbose=False):
     archive = open(tempfile.mkstemp()[1], "w+b")
     archive.write("server 127.0.0.1\n")
@@ -106,6 +152,7 @@ def record_create(zone, action, record, record_type, record_value, ttl, force=Fa
     archive.close()
     return archive.name
 
+
 def record_delete(zone, action, record, record_type, record_value):
     archive = open(tempfile.mkstemp()[1], "w+b")
     archive.write("server 127.0.0.1\n")
@@ -118,6 +165,28 @@ def record_delete(zone, action, record, record_type, record_value):
     archive.write("send\n")
     archive.close()
     return archive.name
+
+
+def nsupdate_file(zone, operations):
+    archive = open(tempfile.mkstemp()[1], "w+b")
+    archive.write("server 127.0.0.1\n")
+    if not filter(lambda x: zone.endswith(x), ['.in-addr.arpa']):
+        archive.write("zone %s\n" %(zone))
+    for o in operations:
+        o['record'] = '.'.join(filter(lambda x: x not in [None, '@', ''], [o['name'], zone]))
+        if o['type'] not in ['MX']:
+            archive.write("update %(action)s %(record)s %(ttl)s IN %(type)s %(value)s\n" %(o))
+        else:
+            archive.write("update %(action)s %(record)s %(ttl)s %(type)s %(value)s\n" %(o))
+    archive.write("show\n")
+    archive.write("send\n")
+    archive.close()
+    return archive.name    
+
+
+def nsupdate(zone, view, operations, config):
+    fname = nsupdate_file(zone, operations)
+    
 
 def update_dns(config, filename, zone, view):
     command = "%s -k %s %s" %(config['path']['nsupdate'], config['zones']['keys'][view], filename)
@@ -133,6 +202,7 @@ def update_dns(config, filename, zone, view):
     output += commands.getoutput(command)
     output += '\n ' * 2
     return output
+
 
 def update_zone(config, zone, action, record, record_type, record_value, ttl, zview):
     output = 'ok'
@@ -150,14 +220,18 @@ def update_zone(config, zone, action, record, record_type, record_value, ttl, zv
         output += update_dns(config, fname, zone, zview)
     return output
 
-def get_zone_file(config, zone, zview):
+
+def get_zone_file(config, zone, zview, content=True):
     available, enable, database = get_zones_path(config, zview, zone)
     if not os.path.isfile(database):
         return False
-    f = open(database)
-    r = f.read()
-    f.close()
-    return r
+    if content:
+        f = open(database)
+        r = f.read()
+        f.close()
+        return r
+    else:
+        return database
 
 
 def parse_zone(zp, k, zones):
@@ -193,3 +267,4 @@ def get_zones(zones_dir):
     data['zones'] = zones
     data['count'] = len(zones)
     return data
+

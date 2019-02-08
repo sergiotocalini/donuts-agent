@@ -26,6 +26,8 @@ def index():
                 return add_zone(data)
             elif data['request'] == 'del_zone':
                 return del_zone(data)
+            elif data['request'] == 'zone.get':
+                return zone(data)
             elif data['request'] == 'enable_zone':
                 return enable_zone(data)
             elif data['request'] == 'disable_zone':
@@ -85,18 +87,24 @@ def show_zones(data):
     pprint.pprint(data)
     return flask.jsonify(data)
 
+def zone(data):
+    zone = data.get('zone', None)
+    view = data.get('view', 'private')
+    return flask.jsonify({'data': agent.zone_transfer(app.config['BIND_CONF'], zone, view) })
+    
 def update_zone(data):
     zone = data.get('zone', None)
     action = data.get('action', None)
-    record = data.get('record', None)
-    record_type = data.get('record_type', None)
-    record_value = data.get('record_value', None)
+    name = data.get('name', None)
+    type = data.get('type', None)
+    value = data.get('value', None)
     ttl = data.get('ttl', None)
     zviews = data.get('view', 'private')
-    if None in (zone, action, record, record_value, ttl, zviews):
+    if None in (zone, action, name, type, value, ttl, zviews):
         abort(401)
-    output = agent.update_zone(app.config['BIND_CONF'], zone, action, record, record_type, record_value, ttl, zviews)
+    output = agent.update_zone(app.config['BIND_CONF'], zone, action, name, type, value, ttl, zviews)
     data = {'status': output}
+    print(data)
     return flask.jsonify(data)
 
 if __name__ == '__main__':

@@ -7,9 +7,13 @@ import tempfile
 import time
 import dns.zone
 
-def zone_sync(config, zone=''):
-    command = '%s sync %s' % (config['path']['rndc'], zone)
-    return [{ 'cmd': command, 'out': commands.getoutput(command) }]
+
+def commands_exec(commands):
+    return [{ 'cmd': c, 'out': commands.getoutput(c)} for c in commands]
+
+
+def rndc_sync(config, zone=''):
+    return commands_exec([ '%s sync %s' % (config['path']['rndc'], zone) ])
     
 
 def zone_read(zone, view, config):
@@ -141,8 +145,11 @@ def record_create(zone, action, record, record_type, record_value, ttl, force=Fa
     archive.write("server 127.0.0.1\n")
     archive.write("zone %s\n" %(zone))
     fqdn = zone
-    if record:
-        fqdn = '%s.%s' % (record, zone)
+    if record and record != '@':
+        if not record.endswith(zone):
+            fqdn = '%s.%s' % (record, zone)
+        else:
+            fqdn = record
     if record_type == 'MX':
         archive.write("update add %s %s %s %s\n" %(fqdn, ttl, record_type, record_value))
     else:
@@ -159,7 +166,10 @@ def record_delete(zone, action, record, record_type, record_value):
     archive.write("zone %s\n" %(zone))
     r = zone
     if record and record != '@':
-        r = '%s.%s' % (record, zone)
+        if not record.endswith(zone):
+           r = '%s.%s' % (record, zone)
+        else:
+           r = record
     archive.write("update delete %s in %s %s\n" %(r, record_type, record_value))
     archive.write("show\n")
     archive.write("send\n")
@@ -173,7 +183,9 @@ def nsupdate_file(zone, operations):
     if not filter(lambda x: zone.endswith(x), ['.in-addr.arpa']):
         archive.write("zone %s\n" %(zone))
     for o in operations:
-        o['record'] = '.'.join(filter(lambda x: x not in [None, '@', ''], [o['name'], zone]))
+        o['record'] = '.'.join(filter(lambda x: x not in [None, '@', ''], [o['name']]))
+        if not o['record'].endswith(zone):
+            o['record']+='.%s' %zone 
         if o['type'] not in ['MX']:
             archive.write("update %(action)s %(record)s %(ttl)s IN %(type)s %(value)s\n" %(o))
         else:
@@ -186,6 +198,12 @@ def nsupdate_file(zone, operations):
 
 def nsupdate(zone, view, operations, config):
     fname = nsupdate_file(zone, operations)
+    commands = [
+        'cat "%s"' % fname,
+        "%s -k %s %s" %(config['path']['nsupdate'], config['zones']['keys'][view], fname),
+        '%s sync %s' %(config['path']['rndc'], zone)
+    ]
+    return commands_exec(commands)
     
 
 def update_dns(config, filename, zone, view):
@@ -234,6 +252,60 @@ def get_zone_file(config, zone, zview, content=True):
         return database
 
 
+def zone_transfer(config, zone, view, parse=True):
+    available, enable, database = get_zones_path(config, view, zone)
+    if not os.path.isfile(database):
+        return False
+    if parse:
+        records = []
+        soa = {}
+
+        z = dns.zone.from_file(database, check_origin=False)
+        names = z.nodes.keys()
+        names.sort()
+        for n in names:
+            txt = z[n].to_text(n)
+            for t in txt.split('\n'):
+                if 'SOA' in t:
+                    soa['raw'] = t
+                    ts = t.split('.')[-1].strip().split()[0]
+                    soa['ts'] = ts
+                r = parse_record(zone, t)
+                if r:
+                    records.append(r)
+        return soa, records
+    else:
+        return database
+
+def parse_record(zone, ovalues):
+    if 'SOA' in ovalues:
+        return None
+    values = ovalues.split()
+    record = {}
+    print(zone, values)
+    if len(values) == 5:
+        record['name'] = values[0]
+        record['ttl'] = values[1]
+        record['type'] = values[3]
+        record['value'] = values[4]
+    else:
+        values = ovalues.split('"')
+        if len(values) == 3:
+            record_value = values[1]
+            values = values[0].split()
+            record['name'] = values[0]
+            record['ttl'] = values[1]
+            record['type'] = values[3]
+            record['value'] = record_value
+        else:
+            found = False
+            for key in ['SRV', 'MX', 'RSIG', 'TXT', 'DNSKEY', 'NSEC3PARAM', 'TYPE65534']:
+                if key in ovalues:
+                    record = get_record(key, ovalues)
+                    found = True
+                    break
+    return record
+    
 def parse_zone(zp, k, zones):
     z = {}
     if not os.path.isfile(zp):
